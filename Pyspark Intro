@@ -1,0 +1,87 @@
+#Install dependancy packages
+#pip install pyspark
+
+from pyspark.sql import SparkSession
+spark = SparkSession.builder.appName('Practice').getOrCreate()
+
+
+print("before inferSchema")
+df_spark=spark.read.csv('sample.csv', header=True)
+df_spark.printSchema()
+
+print("after inferSchema")
+df=spark.read.csv('sample.csv', header=True ,inferSchema=True)
+df.printSchema()
+
+print("MyDataset")
+df.show()
+
+print("get top rows")
+print(df.head(2))  #return list of rows
+
+print("get column names")
+print(df.columns)
+
+print('select columns to show data')
+df.select(['name','income']).show()
+
+print("Adding new column to dataframe")
+df=df.withColumn("savings",df['income']*12)
+df.show()
+
+print("rename column name")
+df.withColumnRenamed("savings","CTC").show()
+df=df.withColumnRenamed("savings","CTC")
+
+'''
+#Handling missing Values with Mean median and mode in Pyspark Dataframe
+
+#method 1: Drop NA
+df.na.drop(how='any').show()   #drop if any value is Null by default
+df.na.drop(how='all').show()   #drop if all values are Null
+
+#Method 2: at least 2 values must be present in row otherwise drop record
+df.na.drop(thresh=2).show()
+
+#Method3: Subset - if we want to check for NA only in specific column
+df.na.drop(subset=['income']).show()
+
+#Method3: Subset - if we want to replace NA with default value
+df.na.fill(0,'income').show()
+
+#replace NA with Mean/Median/mode value using imputer function
+from pyspark.ml.feature import Imputer
+#pip install numpy
+imputer = Imputer(
+    inputCols=['age', 'income', 'CTC'],
+    outputCols=["{}_imputed".format(c) for c in ['age', 'income', 'CTC']]
+    ).setStrategy("mean")
+
+
+df=imputer.fit(df).transform(df)
+df=df.drop('age','income','CTC')
+df.show()
+
+
+print("#########  Filters ########")
+
+print("Salary of the people less than or equal to 35000")
+df.filter("income_imputed<=35000").show()
+
+print("people more than 40000 , show name and age")
+df.filter("income_imputed>40000").select(['Name','age_imputed']).show()
+
+print("people with salary in range 35-40k")
+df.filter((df['income_imputed']<40000) & (df['income_imputed']>35000)).show()
+
+print("#######  SQL Views to run run SQL queries on dataframe#########")
+df.createOrReplaceTempView('employee')
+results=spark.sql("SELECT * FROM employee")
+results.show()
+
+'''
+print("#######  SQL Query to get records with age more than 22#########")
+df.createOrReplaceTempView('employee')
+results=spark.sql("SELECT * FROM employee where age>22")
+results.show()
+
